@@ -46,11 +46,11 @@ namespace Fluffy {
         public void DoDefaultMedCareHeader(Rect rect, PawnTable table) {
             switch (MainTabWindow_Medical.Instance.Source) {
                 case SourceType.Animals:
-                    MedicalCareUtility.MedicalCareSetter(rect, ref Find.PlaySettings.defaultCareForColonyAnimal);
+                    MedicalCareUtility.MedicalCareSetter(rect, ref Find.PlaySettings.defaultCareForTamedAnimal);
                     break;
 
                 case SourceType.Colonists:
-                    MedicalCareUtility.MedicalCareSetter(rect, ref Find.PlaySettings.defaultCareForColonyHumanlike);
+                    MedicalCareUtility.MedicalCareSetter(rect, ref Find.PlaySettings.defaultCareForColonist);
                     break;
 
                 case SourceType.Hostiles:
@@ -58,7 +58,7 @@ namespace Fluffy {
                     break;
 
                 case SourceType.Prisoners:
-                    MedicalCareUtility.MedicalCareSetter(rect, ref Find.PlaySettings.defaultCareForColonyPrisoner);
+                    MedicalCareUtility.MedicalCareSetter(rect, ref Find.PlaySettings.defaultCareForPrisoner);
                     break;
 
                 case SourceType.Visitors:

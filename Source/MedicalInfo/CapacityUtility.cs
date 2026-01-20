@@ -45,11 +45,11 @@ namespace Fluffy {
             };
             CapacityTags.Add(PawnCapacityDefOf.Consciousness, consciousnessTags);
 
-            HashSet<BodyPartTagDef> eatingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.EatingPathway,
-                BodyPartTagDefOf.EatingSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Eating, eatingTags);
+            //HashSet<BodyPartTagDef> eatingTags = new HashSet<BodyPartTagDef> {
+            //    BodyPartTagDefOf.EatingPathway,
+            //    BodyPartTagDefOf.EatingSource
+            //};
+            //CapacityTags.Add(PawnCapacityDefOf.Eating, eatingTags);
 
             HashSet<BodyPartTagDef> hearingTags = new HashSet<BodyPartTagDef> {
                 BodyPartTagDefOf.HearingSource
@@ -61,12 +61,12 @@ namespace Fluffy {
                 BodyPartTagDefOf.ManipulationLimbDigit,
                 BodyPartTagDefOf.ManipulationLimbSegment
             };
-            CapacityTags.Add(PawnCapacityDefOf.Manipulation, manipulationTags);
+            //CapacityTags.Add(PawnCapacityDefOf.Manipulation, manipulationTags);
 
-            HashSet<BodyPartTagDef> metabolismTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.MetabolismSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Metabolism, metabolismTags);
+            //HashSet<BodyPartTagDef> metabolismTags = new HashSet<BodyPartTagDef> {
+            //    BodyPartTagDefOf.MetabolismSource
+            //};
+            //CapacityTags.Add(PawnCapacityDefOf.Metabolism, metabolismTags);
 
             HashSet<BodyPartTagDef> movingTags = new HashSet<BodyPartTagDef> {
                 BodyPartTagDefOf.MovingLimbCore,
