@@ -11,6 +11,13 @@ using UnityEngine;
 using Verse;
 
 namespace Fluffy {
+    [DefOf]
+    public static class RemovedPawnCapacityDefOf
+    {
+        public static PawnCapacityDef Eating;
+        public static PawnCapacityDef Metabolism;
+    }
+
     // todo; consolidation and clean up of various helpers.
     // todo; lobby for xml implementation of capacity tags on bodyparts so we can get rid of the dictionary.
     [StaticConstructorOnStartup]
@@ -45,11 +52,11 @@ namespace Fluffy {
             };
             CapacityTags.Add(PawnCapacityDefOf.Consciousness, consciousnessTags);
 
-            //HashSet<BodyPartTagDef> eatingTags = new HashSet<BodyPartTagDef> {
-            //    BodyPartTagDefOf.EatingPathway,
-            //    BodyPartTagDefOf.EatingSource
-            //};
-            //CapacityTags.Add(PawnCapacityDefOf.Eating, eatingTags);
+            HashSet<BodyPartTagDef> eatingTags = new HashSet<BodyPartTagDef> {
+                BodyPartTagDefOf.EatingPathway,
+                BodyPartTagDefOf.EatingSource
+            };
+            CapacityTags.Add(RemovedPawnCapacityDefOf.Eating, eatingTags);
 
             HashSet<BodyPartTagDef> hearingTags = new HashSet<BodyPartTagDef> {
                 BodyPartTagDefOf.HearingSource
@@ -61,12 +68,12 @@ namespace Fluffy {
                 BodyPartTagDefOf.ManipulationLimbDigit,
                 BodyPartTagDefOf.ManipulationLimbSegment
             };
-            //CapacityTags.Add(PawnCapacityDefOf.Manipulation, manipulationTags);
+            CapacityTags.Add(PawnCapacityDefOf.Manipulation, manipulationTags);
 
-            //HashSet<BodyPartTagDef> metabolismTags = new HashSet<BodyPartTagDef> {
-            //    BodyPartTagDefOf.MetabolismSource
-            //};
-            //CapacityTags.Add(PawnCapacityDefOf.Metabolism, metabolismTags);
+            HashSet<BodyPartTagDef> metabolismTags = new HashSet<BodyPartTagDef> {
+                BodyPartTagDefOf.MetabolismSource
+            };
+            CapacityTags.Add(RemovedPawnCapacityDefOf.Metabolism, metabolismTags);
 
             HashSet<BodyPartTagDef> movingTags = new HashSet<BodyPartTagDef> {
                 BodyPartTagDefOf.MovingLimbCore,
@@ -84,7 +91,8 @@ namespace Fluffy {
 
             HashSet<BodyPartTagDef> talkingTags = new HashSet<BodyPartTagDef> {
                 BodyPartTagDefOf.TalkingPathway,
-                BodyPartTagDefOf.TalkingSource
+                BodyPartTagDefOf.TalkingSource,
+                BodyPartTagDefOf.Tongue
             };
             CapacityTags.Add(PawnCapacityDefOf.Talking, talkingTags);
 
@@ -114,6 +122,8 @@ namespace Fluffy {
             // spawn a message about orphan tags
             foreach (BodyPartTagDef tag in DefDatabase<BodyPartTagDef>.AllDefsListForReading) {
                 bool used = false;
+                if(tag.defName == "Mirrored")
+                    continue;
                 foreach (HashSet<BodyPartTagDef> tagset in CapacityTags.Values) {
                     if (tagset.Contains(tag)) {
                         used = true;
@@ -237,24 +247,20 @@ namespace Fluffy {
         }
 
         public static FloatMenuOption GenerateSurgeryOption(Pawn pawn, Thing thingForMedBills, RecipeDef recipe,
-                                                             IEnumerable<ThingDef> missingIngredients,
-                                                             BodyPartRecord part = null) {
-            if (_generateSurgeryOptionMethodInfo == null) {
-                _generateSurgeryOptionMethodInfo = typeof(HealthCardUtility).GetMethod("GenerateSurgeryOption",
-                                                                                          BindingFlags.NonPublic |
-                                                                                          BindingFlags.Static);
-                if (_generateSurgeryOptionMethodInfo == null) {
-                    throw new NullReferenceException("GenerateSurgeryOption method info not found!");
-                }
-            }
+            IEnumerable<ThingDef> missingIngredients,
+            BodyPartRecord part = null)
+        {
+            _generateSurgeryOptionMethodInfo ??= typeof(HealthCardUtility).GetMethod("GenerateSurgeryOption",
+                BindingFlags.NonPublic |
+                BindingFlags.Static);
+           
+            if (_generateSurgeryOptionMethodInfo == null)
+                throw new NullReferenceException("GenerateSurgeryOption method info not found!");
 
-            return
-                _generateSurgeryOptionMethodInfo.Invoke(null,
-                                                         new object[]
-                                                         {
-                                                             pawn, thingForMedBills, recipe, missingIngredients, part
-                                                         })
-                    as FloatMenuOption;
+
+            return _generateSurgeryOptionMethodInfo.Invoke(null,
+                    [pawn, thingForMedBills, recipe, missingIngredients, AcceptanceReport.WasAccepted, 0, part]) as
+                FloatMenuOption;
         }
 
         public static bool IsAddedPart(this HediffDef hediff) {
