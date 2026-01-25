@@ -29,7 +29,7 @@ namespace Fluffy {
 
                 column.PostLoad();
                 DefDatabase<PawnColumnDef>.Add(column);
-                medicalTable.columns.Insert(medicalTable.AllColumnsListForReading.Count - 1, column);
+                medicalTable.columns.Insert(medicalTable.columns.Count - 1, column);
 
                 moveLabelDown = !moveLabelDown;
             }
