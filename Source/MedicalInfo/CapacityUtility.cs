@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
+using HarmonyLib;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -18,6 +20,56 @@ namespace Fluffy {
         public static PawnCapacityDef Metabolism;
     }
 
+    [HarmonyPatch]
+    public static class CaptureTags
+    {
+        [HarmonyTargetMethods]
+        public static MethodBase[] TargetMethods()
+        {
+            return typeof(PawnCapacityWorker).AllSubclassesNonAbstract().Select(x =>
+                AccessTools.Method(x, nameof(PawnCapacityWorker.CalculateCapacityLevel))).ToArray();
+        }
+
+        private static Dictionary<Type, HashSet<Func<BodyPartTagDef>>> TypeCallingTags =
+            new Dictionary<Type, HashSet<Func<BodyPartTagDef>>>();
+
+        private static Dictionary<Type, HashSet<BodyPartTagDef>> Values;
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase mb)
+        {
+            var type = mb.DeclaringType;
+
+            var list = new List<Func<BodyPartTagDef>>();
+            var matcher = new CodeMatcher(instructions);
+            matcher.MatchStartForward(new CodeMatch(x =>
+                x.opcode == OpCodes.Ldsfld && x.operand is FieldInfo fi && fi.FieldType == typeof(BodyPartTagDef)))
+                .Repeat(x =>
+                {
+                    var field = x.Operand as FieldInfo;
+                    list.Add(() => AccessTools.Field(field.DeclaringType, field.Name).GetValue(null) as BodyPartTagDef);
+                    x.Advance(1);
+
+                });
+
+            if (!TypeCallingTags.TryGetValue(type, out var existing))
+            {
+                existing = [];
+                TypeCallingTags.Add(type, existing);
+            }
+
+            existing.AddRange(list);
+
+            return matcher.Instructions();
+        }
+        
+        public static Dictionary<Type, HashSet<BodyPartTagDef>> GetTags()
+        {
+            Values ??= TypeCallingTags.ToDictionary(x => x.Key,
+                x => new HashSet<BodyPartTagDef>(x.Value.Select(y => y.Invoke()).Where(x => x != BodyPartTagDefOf.Mirrored)));
+
+            return Values;
+        }
+    }
+
     // todo; consolidation and clean up of various helpers.
     // todo; lobby for xml implementation of capacity tags on bodyparts so we can get rid of the dictionary.
     [StaticConstructorOnStartup]
@@ -27,74 +79,13 @@ namespace Fluffy {
 
         private static MethodInfo _generateSurgeryOptionMethodInfo;
 
-        static CapacityUtility() {
-            HashSet<BodyPartTagDef> filtrationTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.BloodFiltrationKidney,
-                BodyPartTagDefOf.BloodFiltrationLiver,
-                BodyPartTagDefOf.BloodFiltrationSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.BloodFiltration, filtrationTags);
+        static CapacityUtility()
+        {
 
-            HashSet<BodyPartTagDef> pumpingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.BloodPumpingSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.BloodPumping, pumpingTags);
-
-            HashSet<BodyPartTagDef> breathingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.BreathingPathway,
-                BodyPartTagDefOf.BreathingSource,
-                BodyPartTagDefOf.BreathingSourceCage
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Breathing, breathingTags);
-
-            HashSet<BodyPartTagDef> consciousnessTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.ConsciousnessSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Consciousness, consciousnessTags);
-
-            HashSet<BodyPartTagDef> eatingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.EatingPathway,
-                BodyPartTagDefOf.EatingSource
-            };
-            CapacityTags.Add(RemovedPawnCapacityDefOf.Eating, eatingTags);
-
-            HashSet<BodyPartTagDef> hearingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.HearingSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Hearing, hearingTags);
-
-            HashSet<BodyPartTagDef> manipulationTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.ManipulationLimbCore,
-                BodyPartTagDefOf.ManipulationLimbDigit,
-                BodyPartTagDefOf.ManipulationLimbSegment
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Manipulation, manipulationTags);
-
-            HashSet<BodyPartTagDef> metabolismTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.MetabolismSource
-            };
-            CapacityTags.Add(RemovedPawnCapacityDefOf.Metabolism, metabolismTags);
-
-            HashSet<BodyPartTagDef> movingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.MovingLimbCore,
-                BodyPartTagDefOf.MovingLimbDigit,
-                BodyPartTagDefOf.MovingLimbSegment,
-                BodyPartTagDefOf.Pelvis,
-                BodyPartTagDefOf.Spine
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Moving, movingTags);
-
-            HashSet<BodyPartTagDef> sightTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.SightSource
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Sight, sightTags);
-
-            HashSet<BodyPartTagDef> talkingTags = new HashSet<BodyPartTagDef> {
-                BodyPartTagDefOf.TalkingPathway,
-                BodyPartTagDefOf.TalkingSource,
-                BodyPartTagDefOf.Tongue
-            };
-            CapacityTags.Add(PawnCapacityDefOf.Talking, talkingTags);
+            var capturedTags = CaptureTags.GetTags();
+            var capacities =
+                DefDatabase<PawnCapacityDef>.AllDefs.ToDictionary(x => x, x => capturedTags[x.Worker.GetType()]);
+            CapacityTags = capacities;
 
             // try and make an educated guess for any other capacity added by mods
             foreach (PawnCapacityDef capacityDef in DefDatabase<PawnCapacityDef>.AllDefsListForReading) {

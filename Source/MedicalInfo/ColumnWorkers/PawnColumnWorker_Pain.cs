@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -11,6 +12,13 @@ using static Fluffy.CapacityUtility;
 
 namespace Fluffy {
     public class PawnColumnWorker_Pain: PawnColumnWorker {
+
+        private static TaggedString
+            XClickToY = "MedicalTab.XClickToY".Translate(),
+            Pain = "Pain".Translate(),
+            SurgeryOptions = "MedicalTab.ShowSurgeryOptionsThat".Translate(),
+            Reduce = "MedicalTab.Reduce".Translate();
+
         #region Methods
 
         public override int Compare(Pawn a, Pawn b) {
@@ -19,17 +27,6 @@ namespace Fluffy {
 
         public override void DoCell(Rect rect, Pawn pawn, PawnTable table) {
             Pair<string, Color> painLabel = HealthCardUtility.GetPainLabel(pawn);
-            string painTip = HealthCardUtility.GetPainTip(pawn);
-
-            painTip += "\n\n";
-            painTip += "MedicalTab.XClickToY".Translate("", "MedicalTab.ShowSurgeryOptionsThat".Translate(
-                                                                                                           "MedicalTab.Reduce"
-                                                                                                               .Translate
-                                                                                                               (),
-                                                                                                           "Pain"
-                                                                                                               .Translate
-                                                                                                               ()))
-                                             .Trim().CapitalizeFirst();
 
             // draw label (centered)
             GUI.color = painLabel.Second;
@@ -39,7 +36,17 @@ namespace Fluffy {
             GUI.color = Color.white;
 
             // tooltip
-            TooltipHandler.TipRegion(rect, painTip);
+            TooltipHandler.TipRegion(rect, () =>
+            {
+                var builder = new StringBuilder();
+                builder.AppendLine(HealthCardUtility.GetPainTip(pawn));
+                builder.AppendLine();
+                builder.AppendLine(XClickToY.Formatted("", SurgeryOptions.Formatted(
+                        Reduce,
+                         Pain))
+                    .Trim().CapitalizeFirst());
+                return builder.ToString();
+            }, pawn.thingIDNumber + 20);
 
             // click
             Widgets.DrawHighlightIfMouseover(rect);

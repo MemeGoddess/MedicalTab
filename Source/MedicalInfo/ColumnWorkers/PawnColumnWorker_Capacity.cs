@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -11,10 +12,21 @@ using static Fluffy.CapacityUtility;
 using static Fluffy.Constants;
 
 namespace Fluffy {
-    public class PawnColumnWorker_Capacity: PawnColumnWorker {
+    public class PawnColumnWorker_Capacity : PawnColumnWorker {
         #region Fields
 
         private Vector2 cachedLabelSize = Vector2.zero;
+
+        private static TaggedString
+            XClickToY = "MedicalTab.XClickToY".Translate(),
+            Left = "MedicalTab.Left".Translate(),
+            Right = "MedicalTab.Right".Translate(),
+            SurgeryOptions = "MedicalTab.ShowSurgeryOptionsThat".Translate(),
+            Increase = "MedicalTab.Increase".Translate(),
+            Reduce = "MedicalTab.Reduce".Translate(),
+            ScheduledProcedures = "MedicalTab.ScheduledProcedures".Translate();
+
+        private Dictionary<Pawn, (float level, string label, Color color)> labelCache = new();
 
         #endregion Fields
 
@@ -33,16 +45,21 @@ namespace Fluffy {
 
         public override void DoCell(Rect rect, Pawn pawn, PawnTable table) {
             // get values
-            float level = Efficiency(pawn);
-            string label = level.ToStringPercent();
-            Color color = HealthCardUtility.GetEfficiencyLabel(pawn, Capacity).Second;
-            string tip = HealthCardUtility.GetPawnCapacityTip(pawn, Capacity);
+            if (pawn.thingIDNumber % 10 == MainTabWindow_Medical.RenderClock ||
+                !labelCache.TryGetValue(pawn, out var cached))
+            {
+                var level = Efficiency(pawn);
+                var label = level.ToStringPercent();
+                var color = HealthCardUtility.GetEfficiencyLabel(pawn, Capacity).Second;
+                cached = (level, label, color);
+                labelCache[pawn] = cached;
 
+            }
 
             // draw label
-            GUI.color = color;
+            GUI.color = cached.color;
             Text.Anchor = TextAnchor.LowerCenter;
-            Widgets.Label(rect, label);
+            Widgets.Label(rect, cached.label);
             Text.Anchor = TextAnchor.UpperLeft;
             GUI.color = Color.white;
 
@@ -50,13 +67,17 @@ namespace Fluffy {
             DoPendingBillsDrawExtra(rect, pawn);
             if (Mouse.IsOver(rect)) {
                 // getting that tooltip can be quite expensive, let's not do it until we have to.
-                tip += GetPendingBillsTip(pawn);
             }
 
             // tooltip
             Widgets.DrawHighlightIfMouseover(rect);
-            tip += GetInteractionTip(pawn);
-            TooltipHandler.TipRegion(rect, tip);
+            TooltipHandler.TipRegion(rect, () =>
+            {
+                var tip = new StringBuilder(HealthCardUtility.GetPawnCapacityTip(pawn, Capacity));
+                tip.Append(GetPendingBillsTip(pawn));
+                tip.Append(GetInteractionTip(pawn));
+                return tip.ToString();
+            }, pawn.thingIDNumber + 10);
 
             // done for hostile pawns
             if (MainTabWindow_Medical.Instance.Source == SourceType.Hostiles) {
@@ -64,7 +85,8 @@ namespace Fluffy {
             }
 
             // click
-            DoInteractions(rect, pawn, level);
+            if(Mouse.IsOver(rect))
+                DoInteractions(rect, pawn, cached.level);
         }
 
         private void DoInteractions(Rect rect, Pawn pawn, float level) {
@@ -95,25 +117,20 @@ namespace Fluffy {
             }
         }
 
-        private string GetInteractionTip(Pawn pawn) {
-            string tip = "\n";
-            tip += "MedicalTab.XClickToY".Translate("MedicalTab.Left".Translate(),
-                                                     "MedicalTab.ShowSurgeryOptionsThat".Translate(
-                                                                                                   "MedicalTab.Increase"
-                                                                                                       .Translate(),
-                                                                                                   Capacity.GetLabelFor(
-                                                                                                                        pawn)))
-                                         .CapitalizeFirst();
+        private string GetInteractionTip(Pawn pawn)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine();
+            builder.AppendLine(XClickToY.Formatted(Left, SurgeryOptions.Formatted(
+                    Increase,
+                    Capacity.GetLabelFor(pawn)))
+                .CapitalizeFirst());
 
-            tip += "\n";
-            tip += "MedicalTab.XClickToY".Translate("MedicalTab.Right".Translate(),
-                                                     "MedicalTab.ShowSurgeryOptionsThat".Translate(
-                                                                                                   "MedicalTab.Reduce"
-                                                                                                       .Translate(),
-                                                                                                   Capacity.GetLabelFor(
-                                                                                                                        pawn)))
-                                         .CapitalizeFirst();
-            return tip;
+            builder.AppendLine(XClickToY.Formatted(Right, SurgeryOptions.Formatted(
+                    Reduce, 
+                    Capacity.GetLabelFor(pawn)))
+                .CapitalizeFirst());
+            return builder.ToString();
         }
 
         public override void DoHeader(Rect rect, PawnTable table) {
@@ -172,27 +189,27 @@ namespace Fluffy {
         }
 
         private string GetPendingBillsTip(Pawn pawn) {
-            string tip = "";
+            var tip = new StringBuilder();
 
             IEnumerable<Bill_Medical> bills = pawn.BillStack.Bills
                                           .OfType<Bill_Medical>()
                                           .Where( b => b.Affects( Capacity ) );
 
 #if DEBUG
-            Log.Message(pawn.LabelCap + " :: " + pawn.BillStack.Bills.Count + " :: " + bills.Count() + " :: " + string.Join(", ", pawn.BillStack.Bills.Select(b => b.recipe.defName).ToArray()));
+            Log.Message(pawn.LabelCap + " :: " + pawn.BillStack.Bills.Count + " :: " + bills.Count() + " :: " +
+                        string.Join(", ", pawn.BillStack.Bills.Select(b => b.recipe.defName).ToArray()));
 #endif
 
             if (bills.Any()) {
-                tip += "\n";
-                tip += "MedicalTab.ScheduledProcedures".Translate();
-                tip += "\n";
+                tip.AppendLine();
+                tip.AppendLine(ScheduledProcedures);
 
                 foreach (Bill_Medical bill in bills) {
-                    tip += bill.LabelCap.Indented() + "\n";
+                    tip.AppendLine(bill.LabelCap.Indented());
                 }
             }
 
-            return tip;
+            return tip.ToString();
         }
 
         #endregion Methods

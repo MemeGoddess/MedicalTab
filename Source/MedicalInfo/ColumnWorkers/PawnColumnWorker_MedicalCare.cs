@@ -3,12 +3,21 @@
 // 2017-05-14
 
 using System.Linq;
+using System.Text;
 using RimWorld;
 using UnityEngine;
 using Verse;
 
 namespace Fluffy {
-    public class PawnColumnWorker_MedicalCare: PawnColumnWorker, IOptionalColumn {
+    public class PawnColumnWorker_MedicalCare: PawnColumnWorker, IOptionalColumn 
+    {
+        private static TaggedString
+            XClickToY = "MedicalTab.XClickToY".Translate(),
+            Shift = "MedicalTab.Shift".Translate(),
+            Ctrl = "MedicalTab.Ctrl".Translate(),
+            MassAssignMedicalCare = "MedicalTab.MassAssignMedicalCare".Translate(),
+            SetDefaultMedicalCare = "MedicalTab.SetDefaultMedicalCare".Translate();
+
         public MedicalCareCategory OverallCare {
             get => MainTabWindow_Medical.Instance?.Table?.PawnsListForReading?.Max(p => p.playerSettings?.medCare) ?? MedicalCareCategory.Best;
             set {
@@ -80,11 +89,11 @@ namespace Fluffy {
                     OverallCare = current;
                 }
 
-                TooltipHandler.TipRegion(rect, GetHeaderTip(table));
+                TooltipHandler.TipRegion(rect, () => GetHeaderTip(table), 2954308);
             } else if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl) || Input.GetKey(KeyCode.LeftCommand) || Input.GetKey(KeyCode.RightCommand)) && Mouse.IsOver(rect)) {
                 // defaults
                 DoDefaultMedCareHeader(rect, table);
-                TooltipHandler.TipRegion(rect, GetHeaderTip(table));
+                TooltipHandler.TipRegion(rect, () => GetHeaderTip(table), 2954308);
             } else {
                 // text
                 base.DoHeader(rect, table);
@@ -99,20 +108,18 @@ namespace Fluffy {
             return (int) pawn.playerSettings.medCare;
         }
 
-        protected override string GetHeaderTip(PawnTable table) {
-            string tip = base.GetHeaderTip( table );
-            tip += "\n\n";
+        protected override string GetHeaderTip(PawnTable table)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine(base.GetHeaderTip(table));
+            builder.AppendLine();
 
             if (table.PawnsListForReading.Any()) {
-                tip += "MedicalTab.XClickToY".Translate("MedicalTab.Shift".Translate(),
-                                                         "MedicalTab.MassAssignMedicalCare".Translate())
-                                             .CapitalizeFirst();
-                tip += "\n";
+                builder.AppendLine(XClickToY.Formatted(Shift, MassAssignMedicalCare).CapitalizeFirst());
             }
 
-            tip += "MedicalTab.XClickToY".Translate("MedicalTab.Ctrl".Translate(),
-                                                     "MedicalTab.SetDefaultMedicalCare".Translate()).CapitalizeFirst();
-            return tip;
+            builder.AppendLine(XClickToY.Formatted(Ctrl, SetDefaultMedicalCare).CapitalizeFirst());
+            return builder.ToString();
         }
 
         // todo; try to get rid of the EventType == Layout bail for DoColumn() to see if that improves responsiveness
