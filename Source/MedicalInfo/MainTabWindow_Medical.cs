@@ -22,7 +22,6 @@ namespace Fluffy {
     public class MainTabWindow_Medical: MainTabWindow_PawnTable {
         #region Fields
 
-        public static int RenderClock = -1;
         private static readonly FieldInfo _tableFieldInfo;
         private static bool _filterHealthy;
         private SourceType _source = SourceType.Colonists;
@@ -142,7 +141,6 @@ namespace Fluffy {
 
         public override void DoWindowContents(Rect rect)
         {
-            RenderClock = RenderClock++ % 10;
             var sourceRect = rect.BottomPartPixels(30f).LeftPartPixels(120f);
             DoSourceSelectionButton(new Rect(sourceRect.x, sourceRect.y, 120f, 30f));
             DoFilterHealthyButton(new Rect(sourceRect.x + 120f + Margin, sourceRect.y, 30f, 30f));

@@ -34,10 +34,12 @@ namespace Fluffy {
         }
 
         public override void DoCell(Rect rect, Pawn pawn, PawnTable table) {
-            TooltipHandler.TipRegion(rect, GetTip(pawn));
-            if (!HasCheckbox(pawn)) {
+            
+            if (!HasCheckbox(pawn))
                 return;
-            }
+
+            if (Mouse.IsOver(rect))
+                TooltipHandler.TipRegion(rect, GetTip(pawn));
 
             Rect cell = new Rect(0f, 0f, Constants.IconSize, Constants.IconSize)
                       .CenteredOnXIn(rect)

@@ -45,7 +45,7 @@ namespace Fluffy {
 
         public override void DoCell(Rect rect, Pawn pawn, PawnTable table) {
             // get values
-            if (pawn.thingIDNumber % 10 == MainTabWindow_Medical.RenderClock ||
+            if (pawn.thingIDNumber % 10 == Find.TickManager.TicksGame % 10 ||
                 !labelCache.TryGetValue(pawn, out var cached))
             {
                 var level = Efficiency(pawn);
