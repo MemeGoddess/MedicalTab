@@ -24,7 +24,7 @@
     </PropertyGroup>
     <!-- Release configuration -->
     <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-        <DebugType>embedded</DebugType>
+        <DebugType>none</DebugType>
         <Optimize>true</Optimize>
         <OutputPath>..\..\$(Version)\Assemblies\</OutputPath>
         <WarningLevel>4</WarningLevel>
