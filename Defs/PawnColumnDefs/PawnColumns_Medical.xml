@@ -18,6 +18,14 @@
     </PawnColumnDef>
 
     <PawnColumnDef>
+        <defName>MedicalTab_BedRest</defName>
+        <workerClass>Fluffy.PawnColumnWorker_BedRest</workerClass>
+        <sortable>true</sortable>
+        <label>bed rest</label>
+        <workType>PatientBedRest</workType>
+    </PawnColumnDef>
+
+    <PawnColumnDef>
         <defName>Bleeding</defName>
         <workerClass>Fluffy.PawnColumnWorker_Bleeding</workerClass>
         <sortable>true</sortable>
