@@ -83,13 +83,11 @@ namespace Fluffy {
         {
 
             var capturedTags = CaptureTags.GetTags();
-            var capacities =
-                DefDatabase<PawnCapacityDef>.AllDefs.ToDictionary(x => x, x => capturedTags[x.Worker.GetType()]);
-            CapacityTags = capacities;
 
             // try and make an educated guess for any other capacity added by mods
             foreach (PawnCapacityDef capacityDef in DefDatabase<PawnCapacityDef>.AllDefsListForReading) {
-                if (CapacityTags.ContainsKey(capacityDef)) {
+                if (capturedTags.TryGetValue(capacityDef.Worker.GetType(), out var captured)) {
+                    CapacityTags.Add(capacityDef, captured);
                     continue;
                 }
 
