@@ -150,7 +150,9 @@ namespace Fluffy {
                  pawn.health.hediffSet.PainTotal > 0f ||
                  pawn.GetDiseases().Any() ||
                  DefDatabase<PawnCapacityDef>.AllDefsListForReading
-                                             .Any(cap => pawn.health.capacities.GetLevel(cap) < 1f)) {
+                                             .Any(cap => cap.CanShowOnPawn(pawn) &&
+                                                         cap.Worker.CanHaveCapacity(pawn.RaceProps.body) &&
+                                                         pawn.health.capacities.GetLevel(cap) < 1f)) {
                 return false;
             }
 
